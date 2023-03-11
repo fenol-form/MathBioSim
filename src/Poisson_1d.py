@@ -70,6 +70,20 @@ class Grid:
         i = self.get_correct_index(i)
         return self.cell_coords[i]
 
+    def get_all_coords(self) -> np.array:
+        x_coords = np.array([])
+        for lst in self.cell_coords:
+            if len(lst) > 0:
+                x_coords = np.hstack([x_coords, lst])
+        return x_coords
+
+    def get_all_death_rates(self) -> np.array:
+        all_death_rates = np.array([])
+        for lst in self.cell_coords:
+            if len(lst) > 0:
+                all_death_rates = np.hstack([all_death_rates, lst])
+        return all_death_rates
+
     def add_death_rate(self, target_cell: int, target_specimen: int, death_rate: np.float64):
 
         # add death_rate to the target_specimen being in target_cell
@@ -94,14 +108,13 @@ class Grid:
         pass
 
     def count_distance(self, cell_i: int, cell_j: int, i: int, j: int) -> np.float64:
-        distance = 0.0
         cell_i = self.get_correct_index(cell_i)
         cell_j = self.get_correct_index(cell_j)
+        distance = abs(self.cell_coords[cell_i][i] - self.cell_coords[cell_j][j])
         if self.periodic:
-            # TO DO
-            return 0.0
+            return min(distance, self.area_length_x - distance)
         else:
-            return abs(self.cell_coords[cell_i][i] - self.cell_coords[cell_j][j])
+            return distance
 
 
 class Poisson_1d:
