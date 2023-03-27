@@ -1,0 +1,7 @@
+uniform distributed
+cells=10
+length=100
+individual_amount=51
+death_sd=0.02
+birth_sd=0.12
+dd=0.001
