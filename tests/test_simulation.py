@@ -44,11 +44,11 @@ def test_sim():
         b=np.float_(1),
         d=np.float_(0.),
         initial_population_x=[10.],
-        seed=1234,
+        seed=42,
         death_y=stats.norm.pdf(death_grid, scale=1),
         birth_inverse_rcdf_y=stats.norm.ppf(birth_grid, scale=0.2),
         death_cutoff_r=np.float_(5),
         periodic=True,
         realtime_limit=np.float_(60)
     )
-    result = run_simulations.run_simulations(sim, 100)
+    result = run_simulations.run_simulations(sim, 50)

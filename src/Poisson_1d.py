@@ -315,6 +315,7 @@ class Poisson_1d:
         self.d = d
         self.dd = dd
         self.seed = seed
+        np.random.seed(seed)
 
         self.initial_population_x = initial_population_x
 
