@@ -2,7 +2,7 @@ import numpy as np
 import time
 from scipy import interpolate
 import scipy.stats as stats
-from line_profiler_pycharm import profile
+
 
 def initialize_death_spline(death_y: np.array, death_cutoff_r: np.float64):
     death_grid = np.linspace(0, death_cutoff_r, len(death_y))
@@ -14,12 +14,8 @@ def initialize_ircdf_spline(birth_ircdf_y: np.array):
     return interpolate.CubicSpline(birth_ircdf_grid, birth_ircdf_y)
 
 
-def generate_random_index(n: int, weights: np.array) -> int:
-    # assert n > 0
-    # assert (weights >= 0).all()
-    # assert (weights != 0).any()
-    pk = weights / np.sum(weights)
-    return stats.rv_discrete(values=(np.arange(n), pk)).rvs()
+def generate_random_index(weights: np.array) -> int:
+    return np.random.choice(np.arange(weights.shape[0]), p=weights / np.sum(weights))
 
 
 class Grid:
@@ -28,7 +24,6 @@ class Grid:
                  cell_count_x: int,
                  periodic: bool,
                  cell_size: int,
-                 d: np.float64,
                  area_length_x: np.float64):
         self.cell_count_x = cell_count_x
 
@@ -76,7 +71,6 @@ class Grid:
         i = self.get_correct_index(i)
         return self.cell_coords[i]
 
-    @profile
     def add_death_rate(self, target_cell: int, addition: np.array, total_add):
         target_cell = self.get_correct_index(target_cell)
         self.cell_death_rates[target_cell] += addition
@@ -91,7 +85,6 @@ class Grid:
         self.cell_coords = np.concatenate([self.cell_coords, np.zeros((self.cell_count_x, addition))], axis=1)
         self.cell_death_rates = np.concatenate([self.cell_death_rates, np.zeros((self.cell_count_x, addition))], axis=1)
 
-    @profile
     def append(self, i: int, x_coord: np.float64, death_rate: np.float64):
         # append specimen at the end of the cell number 'i'
         i = self.get_correct_index(i)
@@ -109,7 +102,6 @@ class Grid:
         self.death_rates[i] += death_rate
         self.total_death_rate += death_rate
 
-    @profile
     def remove(self, i: int, j: int, death_rate: np.float64):
         # remove specimen on the position 'j' from the cell number 'i'
         i = self.get_correct_index(i)
@@ -141,7 +133,6 @@ class Grid:
 class Poisson_1d:
 
     def initialize_death_rates(self):
-
         # Spawn all specimens
         for x_coord in self.initial_population_x:
             if x_coord < 0 or x_coord > self.area_length_x:
@@ -175,7 +166,6 @@ class Poisson_1d:
             target_spec_inter[target_specimen] = total_int
             self.grid.add_death_rate(target_cell, target_spec_inter, total_int)
 
-    @profile
     def get_interactions(self, coord, target_coord):
         distance = abs(coord - target_coord)
         if self.periodic:
@@ -185,15 +175,13 @@ class Poisson_1d:
             return 0.
         return self.dd * self.death_spline(distance)
 
-    @profile
     def kill_random(self):
         if self.grid.total_population == 0:
             return
 
-        cell_death_index = generate_random_index(self.cell_count_x, self.grid.death_rates)
+        cell_death_index = generate_random_index(self.grid.death_rates)
 
         in_cell_death_index = generate_random_index(
-            self.grid.cell_population_at(cell_death_index),
             self.grid.cell_death_rates[cell_death_index][:self.grid.cell_population_at(cell_death_index)]
         )
 
@@ -218,12 +206,10 @@ class Poisson_1d:
         # remove specimen
         self.grid.remove(cell_death_index, in_cell_death_index, self.d)
 
-    @profile
     def spawn_random(self):
-        cell_index = generate_random_index(self.cell_count_x, self.grid.cell_population)
+        cell_index = generate_random_index(self.grid.cell_population)
 
         parent_index = generate_random_index(
-            self.grid.cell_population_at(cell_index),
             np.ones(self.grid.cell_population_at(cell_index))
         )
         new_coord_x = self.grid.cell_coords[cell_index][parent_index] + \
@@ -264,7 +250,6 @@ class Poisson_1d:
             self.grid.add_death_rate(i, inter, total_int)
             self.grid.add_death_rate(new_i, index_of_new_spec, total_int)
 
-    @profile
     def make_event(self):
         if self.grid.total_population == 0:
             return -1
@@ -327,6 +312,7 @@ class Poisson_1d:
         self.birth_ircdf_spline = initialize_ircdf_spline(birth_inverse_rcdf_y)
 
         self.cull_x = max(int(death_cutoff_r / (area_length_x / cell_count_x)), 3)
-        self.grid = Grid(cell_count_x, periodic, len(initial_population_x), d, area_length_x)
+        self.cull_x = min(self.cull_x, (self.cell_count_x - 1) // 2)
+        self.grid = Grid(cell_count_x, periodic, len(initial_population_x), area_length_x)
 
         self.initialize_death_rates()
