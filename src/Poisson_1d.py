@@ -126,7 +126,7 @@ class Poisson_1d:
             np.ones(self.grid.total_population)
         )
 
-        shift = np.random.normal(scale=self.dsd) * (2. * np.random.randint(low=0, high=1) - 1.)
+        shift = np.random.normal(scale=self.bsd) * (2. * np.random.randint(low=0, high=1) - 1.)
         new_coord_x = self.grid.x_coords[parent_index] + shift
 
         if new_coord_x < 0 or new_coord_x > self.area_length_x:
